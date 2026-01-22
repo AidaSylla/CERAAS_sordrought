@@ -75,6 +75,8 @@ mppData$pheno <- pheno
 save(mppData, file = "data/mppData/mppData.RData")
 
 # QTL detection (test) ----
+load(file = "data/mppData/mppData.RData")
+
 SIM <- mpp_SIM(mppData = mppData, trait = "angle", Q.eff = "par",
                plot.gen.eff = TRUE)
 plot(SIM)
