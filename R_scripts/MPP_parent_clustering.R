@@ -1,10 +1,13 @@
 #########################################
 # clustering of parent using clusthaplo #
 #########################################
+#pour installer clusthaplo je vais dans packages puis installer puis package archive puis dans le projet puis function puis library
 
 library(mppR)
 library(clusthaplo)
 
+#load(file = "data/mppData/mppData.RData")
+#load(file = "data/mppData/raw_data/GR/mppData.RData")
 load(file = "data/mppData/mppData.RData")
 
 mppData$par.per.cross
@@ -23,7 +26,9 @@ code_parents <- c("v3", "v12", "v18", "v25")
 # geno.par <- USNAM_geno[1:6, ]
 
 # parent data from BCNAM
-load(file = "D:/Mes Donnees/WD/BCNAM/data/genotype/all_parents_geno.RData")
+#load(file = "D:/Mes Donnees/WD/BCNAM/data/genotype/all_parents_geno.RData")
+load(file = "C:/Users/2025an002/Desktop/Sordrought_2025/CERAAS_sordrought/data/geno/all_parents_geno.RData")
+
 geno_par <- data[, code_parents]
 colnames(geno_par) <- c("CSM388", "Grinkan", "IS23540", "White_Kaur")
 
@@ -64,6 +69,7 @@ p_clu <- parent_cluster(haplo.map = haplo.map,
                         plot.loc = plot.loc)
 
 p_clu_w10 <- p_clu$par.clu
+p_clu$av.cl
 
 p_clu <- parent_cluster(haplo.map = haplo.map,
                         consensus.map = consensus.map,
@@ -71,7 +77,7 @@ p_clu <- parent_cluster(haplo.map = haplo.map,
                         na.strings = NA,
                         w1 = w1, w2 = w2,
                         step.size = step.size,
-                        window = 25, K = K,
+                        window = 5, K = K,
                         simulation.type = simulation.type,
                         simulation.Ng = simulation.Ng,
                         simulation.Nrep = 2,
@@ -79,13 +85,35 @@ p_clu <- parent_cluster(haplo.map = haplo.map,
                         plot = plot,
                         plot.loc = plot.loc)
 
-p_clu_w25 <- p_clu$par.clu
+p_clu_w5 <- p_clu$par.clu
+p_clu$av.cl
+
+p_clu <- parent_cluster(haplo.map = haplo.map,
+                        consensus.map = consensus.map,
+                        marker.data = marker.data,
+                        na.strings = NA,
+                        w1 = w1, w2 = w2,
+                        step.size = step.size,
+                        window = 2, K = K,
+                        simulation.type = simulation.type,
+                        simulation.Ng = simulation.Ng,
+                        simulation.Nrep = 2,
+                        threshold.quantile = threshold.quantile,
+                        plot = plot,
+                        plot.loc = plot.loc)
+
+p_clu_w2 <- p_clu$par.clu
+p_clu$av.cl
+
+
+source("C:/Users/2025an002/Desktop/Sordrought_2025/CERAAS_sordrought/functions/fct_parent_cluster.R", echo = TRUE)
+
 
 # nombre d'allèles ancestraux moyen doit être compris entre 1 et n_parents
 # [1, 4]
 # windows = 10 => 1.03
 # windows = 25 => 1.00225
-# windows = 5 => ?
+# windows = 5 => 1.13
 # windows = 2 => ?
 
 p_clu$av.cl
@@ -96,3 +124,30 @@ mppData$par.clu <- p_clu_w10
 MPP_SIM_anc <- mpp_SIM(mppData = mppData, Q.eff = "anc")
 MPP_mQTL <- MQE_forward(mppData = mppData, Q.eff = c("par", "anc"),
                         threshold = 3)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
