@@ -1,0 +1,2 @@
+mk.names	chr	pos.ind	pos.cM	QTL.eff	R2.diff	adj.R2.diff	R2.sg	adj.R2.sg
+S1_6837999	1	19	17.7425149780595	par	9.84	9.04	9.84	9.04

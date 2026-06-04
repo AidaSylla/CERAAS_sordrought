@@ -14,7 +14,7 @@ rm(par_per_cross)
 # les données de Aida provienne des croisements BC20, BC40, BC42
 
 # source des données génétiques (dataverse)
-# https://dataverse.cirad.fr/dataset.xhtml?persistentId=doi:10.18167/DVN1/TZVGLS
+#https://dataverse.cirad.fr/dataset.xhtml?persistentId=doi:10.18167/DVN1/TZVGLS
 # mais il manque les données génétiques "brutes"
 
 # ouvrir les données génétiques

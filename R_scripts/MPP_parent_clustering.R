@@ -105,49 +105,74 @@ p_clu <- parent_cluster(haplo.map = haplo.map,
 p_clu_w2 <- p_clu$par.clu
 p_clu$av.cl
 
+p_clu <- parent_cluster(haplo.map = haplo.map,
+                        consensus.map = consensus.map,
+                        marker.data = marker.data,
+                        na.strings = NA,
+                        w1 = w1, w2 = w2,
+                        step.size = step.size,
+                        window = 1, K = K,
+                        simulation.type = simulation.type,
+                        simulation.Ng = simulation.Ng,
+                        simulation.Nrep = 2,
+                        threshold.quantile = threshold.quantile,
+                        plot = plot,
+                        plot.loc = plot.loc)
 
-source("C:/Users/2025an002/Desktop/Sordrought_2025/CERAAS_sordrought/functions/fct_parent_cluster.R", echo = TRUE)
+p_clu_w1 <- p_clu$par.clu
+p_clu$av.cl
+
+#source("C:/Users/2025an002/Desktop/Sordrought_2025/CERAAS_sordrought/functions/fct_parent_cluster.R", echo = TRUE)
 
 
 # nombre d'allèles ancestraux moyen doit être compris entre 1 et n_parents
 # [1, 4]
-# windows = 10 => 1.03
 # windows = 25 => 1.00225
-# windows = 5 => 1.13
-# windows = 2 => ?
+# windows = 10 => 1.045048
+# windows = 5 => 1.138985
+# windows = 2 => 1.474168
+# windows = 1 => 1.830032
 
+# nombre d'allèles ancestraux moyen doit être compris entre 1 et n_parents que moi j'ai trouvé
+# [1, 4]
+# windows = 25 => 
+# windows = 10 => 1.042526
+# windows = 5 => 1.139587
+# windows = 2 => 1.468387
+# windows = 1 => 1.826967
 p_clu$av.cl
 
 # nouveaux modèles après avoir fait le clustering the parents
 
-mppData$par.clu <- p_clu_w10
+mppData$par.clu <- p_clu_w2
 MPP_SIM_anc <- mpp_SIM(mppData = mppData, Q.eff = "anc")
 MPP_mQTL <- MQE_forward(mppData = mppData, Q.eff = c("par", "anc"),
                         threshold = 3)
 
+# Selection du clustering parental: On choisit le clustering parental donnée par
+# win = 1. Sur la base d'un argument plutot statistique afin d'avoir suffisamment
+# de groupement d'allèles parentaux le long du génome. Avec win = 1, on a en moyenne
+# 1.83 allèles parentaux sur 4. Groupement moyen.
+
+par_clu <- p_clu_w1
+
+save(par_clu, file = "output/parent_cluster/par_clu.RData")
+save(par_clu, file = "output_Aida/parent_cluster/par_clu.RData")
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+p_clu_w10 <- p_clu$par.clu
+p_clu$av.cl
+[1] 1.041478
+p_clu_w5 <- p_clu$par.clu
+> p_clu$av.cl
+[1] 1.139781
+p_clu_w2 <- p_clu$par.clu
+> p_clu$av.cl
+[1] 1.483519
+p_clu_w1 <- p_clu$par.clu
+> p_clu$av.cl
+[1] 1.816743
 
 

@@ -1,0 +1,2 @@
+mk.names	chr	pos.ind	pos.cM	log10pval	R2.diff	adj.R2.diff	R2.sg	adj.R2.sg
+S1_6824704	1	1066	17.7192973428773	5.39798282352759	9.84	9.04	9.84	9.04

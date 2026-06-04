@@ -6,7 +6,7 @@ library(rrBLUP)
 library(AGHmatrix)
 library(popkin)
 library(qqman)
-
+library(readxl)
 ## ----chargement données GWAS---------------
 
 load('./data/geno/GR/geno_subset_BC20_40_42.RData')
@@ -31,6 +31,7 @@ rownames(pheno) <- pheno$id
 geno_com <- intersect(rownames(geno), pheno$id)
 pheno <-  pheno[geno_com,]
 geno <- geno[geno_com, ]
+
 
 #---trait distribution----------------------------------------------------------------
 hist(pheno$trait)
