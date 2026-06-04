@@ -21,6 +21,22 @@ rm(par_per_cross)
 load(file = 'data/geno/GR/geno_012_MAF.RData')
 dim(geno_012)
 
+# list of cross with genotypic data
+cross_ind <- substr(rownames(geno_012), 1, 4)
+unique(cross_ind)
+# BC12 is not present in those genotype data. Check Lata genotype
+
+# Check in the Lata data
+# load(file = "../../../../BCNAM/data/mppData_final/Lata/mppData.RData")
+# 
+# ppc <- mppData$par.per.cross
+# map <- mppData$map
+# 
+# geno_012 <- mppData$geno.IBS
+# cross_ind <- substr(rownames(geno_012), 1, 4)
+# unique(cross_ind)
+# no genotype for BC12
+
 geno_012_red <- geno_012[1:100, 1:100]
 
 geno_012[1:10, 1:10]
