@@ -1,7 +1,7 @@
 ######################
 # Script MPP analyse #
 ######################
-
+git status
 # library ----
 library(mppR)
 
