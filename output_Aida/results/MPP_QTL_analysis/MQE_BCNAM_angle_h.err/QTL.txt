@@ -1,2 +1,0 @@
-mk.names	chr	pos.ind	pos.cM	QTL.eff
-S1_6837999	1	19	17.7425149780595	par
