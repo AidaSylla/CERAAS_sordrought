@@ -1,2 +1,0 @@
-mk.names	chr	pos.ind	pos.cM	log10pval
-S1_6824704	1	1066	17.7192973428773	5.39798282352759
