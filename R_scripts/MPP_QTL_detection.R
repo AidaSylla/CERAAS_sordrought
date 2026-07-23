@@ -6,10 +6,67 @@
 # library(devtools)
 # devtools::install_github(repo = "vincentgarin/mppR", ref = "master")
 
+library(mppR)
 #========================================================================================================
 #========================================================================================================
 # QTL detection (test) ----
 load(file = "data/mppData/mppData.RData")
+
+
+#===============================================
+#CONTROLE QUALITE SNPs
+#================================================
+# Matrice SNP
+geno <- mppData$geno.IBS
+
+# 1. Missing rate par SNP
+missing_snp <- colMeans(is.na(geno))
+
+summary(missing_snp)
+
+# garder SNP avec <=10% missing
+keep_missing <- missing_snp <= 0.10
+
+# 2. Calcul MAF pour codage 0/1/2
+maf <- apply(geno, 2, function(x){
+  
+  p <- mean(x, na.rm = TRUE) / 2
+  
+  maf <- min(p, 1 - p)
+  
+  return(maf)
+  
+})
+
+summary(maf)
+
+# garder SNP MAF >= 5%
+keep_maf <- maf >= 0.05
+
+# 3. Filtre final
+keep_SNP <- keep_missing & keep_maf
+
+
+table(keep_SNP)
+
+cat("Nombre SNP avant QC :", ncol(geno), "\n")
+cat("Nombre SNP après QC :", sum(keep_SNP), "\n")
+
+
+mppData <- mppData
+
+mppData$geno.IBS <- mppData$geno.IBS[, keep_SNP]
+
+dim(mppData$geno.IBS)
+
+
+save(
+  mppData,
+  file = "data/mppData/mppData.RData"
+)
+
+#Après celà les Snps sont filtrés
+
 
 #perm <- mpp_perm(mppData, trait = "angle", Q.eff = "par")
 #perm$threshold
@@ -76,6 +133,10 @@ save(perm, file = "results/perm_1000_angle_Qeff_par.RData")
 
 load("results/perm_1000_angle_Qeff_par.RData")
 thr_95 <- unname(perm$q.val)
+
+
+load("threshold_angle_perm.RData")
+
 
 #SIMPLE INTERVAL MAPPING (SIM)
 library(mppR)

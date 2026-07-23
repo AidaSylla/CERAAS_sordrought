@@ -1,3 +1,5 @@
+
+
 library(tidyr)
 library(dplyr)
 library(ggplot2)
@@ -10,8 +12,7 @@ library(readxl)
 
 # setwd("C:/Users/2025an002/Desktop/Sordrought_2025/Aida_GWAS/Analyse_root_angle/data")
 # list.files() 
-setwd("C:/Users/2025an002/Desktop/Sordrought_2025/Aida_GWAS")
-data <- read_excel("data/pheno/data_angle_sordrought_2025.xlsx", sheet = 3)
+data <- read_excel("data/pheno/data_angle_sordrought_2025.xlsx", sheet = 2)
 
 geno_id <- unique(data$LIGNEE)
 cross_id <- substr(x = data$LIGNEE, 1, 4)
@@ -20,69 +21,80 @@ table(cross_id)
 # option add cross
 # data$cross <- cross_id
 
-
-
-#ANALYSE SPATIALE AVEC STATGEN ET IQR
-colnames(data)
+str(data)
 
 data$Root_angle <- as.numeric(data$Root_angle) 
+#data <- na.omit(data)
 
-data1 <- data %>% 
+
+#L? on obtient pour chaque g?notype, les donn?es ab?rentes pour l'ensemble des r?p?titions
+data_angle <- data %>% 
   ggplot(aes(x = LIGNEE, y = Root_angle)) +
   geom_boxplot(aes(x = LIGNEE, y = Root_angle), outlier.shape = 8, outlier.color = "red", outlier.size = 3) +  
   geom_jitter(width = 0.2, alpha = 0.7, color = "blue") + 
   theme_bw() +
   theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
-data1
+data_angle
 
 
+####### Fonction remove outliers
+remove_outliers <- function(data, column) {
+  Q1 <- quantile(data[[column]], 0.25, na.rm = TRUE)
+  Q3 <- quantile(data[[column]], 0.75, na.rm = TRUE)
+  IQR <- Q3 - Q1
+  
+  lower_bound <- Q1 - 1.5 * IQR
+  upper_bound <- Q3 + 1.5 * IQR
+  
+  data_filtered <- data[data[[column]] >= lower_bound & data[[column]] <= upper_bound, ]
+  return(data_filtered)
+}
 
-#Pour que les outliers ne soient pas montrés
+# Loop through each Genotype and remove outliers
+Genotypes <- unique(data$LIGNEE)
+data_angle_cleaned <- data.frame()  # Empty dataframe to store results
 
-data1 <- data %>% 
+for (gen in Genotypes) {
+  subset_data <- data %>% filter(LIGNEE == gen)  # Subset for each Genotype
+  cleaned_data <- remove_outliers(subset_data, "Root_angle")  # Apply outlier removal
+  data_angle_cleaned <- rbind(data_angle_cleaned, cleaned_data)  # Append cleaned data
+}
+
+print(data_angle_cleaned)
+
+#write.table(data_Root_angle_clean, "data_Root_angle_clean.txt", sep = ";", row.names = FALSE, col.names = TRUE)
+#Ici les outliers sont ?limin?s
+
+data_angle_wo_Out <- data_angle_cleaned %>% 
   ggplot(aes(x = LIGNEE, y = Root_angle)) +
-  geom_boxplot(outlier.shape = NA) +  # ne montre pas les outliers
+  geom_boxplot(aes(x = LIGNEE, y = Root_angle), outlier.shape = 8, outlier.color = "red", outlier.size = 3) +  
   geom_jitter(width = 0.2, alpha = 0.7, color = "blue") + 
   theme_bw() +
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+data_angle_wo_Out
 
-data1
 
-####### Fonction remove outliers
-####### Fonction remove outliers
-#remove_outliers <- function(data, column) {
-#  Q1 <- quantile(data[[column]], 0.25, na.rm = TRUE)
-#  Q3 <- quantile(data[[column]], 0.75, na.rm = TRUE)
-#  IQR <- Q3 - Q1
-  
-#  lower_bound <- Q1 - 1.5 * IQR
-#  upper_bound <- Q3 + 1.5 * IQR
-  
-#  data_filtered <- data[data[[column]] >= lower_bound & data[[column]] <= upper_bound, ]
-#  return(data_filtered)
-# }
+cat("Avant :", nrow(data), "\n")
+cat("Après :", nrow(data_angle_cleaned), "\n")
+cat("Supprimées :", nrow(data) - nrow(data_angle_cleaned), "\n")
 
-# Loop through each LIGNEE and remove outliers
-#LIGNEEs <- unique(data$LIGNEE)
-#data_angle_cleaned <- data.frame()  # Empty dataframe to store results
 
-#for (gen in LIGNEEs) {
-#  subset_data <- data %>% filter(LIGNEE == gen)  # Subset for each LIGNEE
-#  cleaned_data <- remove_outliers(subset_data, "Root_angle")  # Apply outlier removal
-#  data_angle_cleaned <- rbind(data_angle_cleaned, cleaned_data)  # Append cleaned data
-# }
-
-#print(data_angle_cleaned)
+#Avant : 2112 
+#Après : 1988 
+#Supprimées : 124 
 
 ##### Compute mean
 # on calcule la moyenne des trois plants pour chaque g?notype. Chaque point repr?sente une r?p?tition
-data_angle_means <- data %>% 
-  group_by(LIGNEE, Plot) %>%
-  summarise(Root_angle = mean(Root_angle, na.rm = TRUE))
 
-data_angle_c <- data_angle_means %>% 
+data_angle_wo_Out_means <- data_angle_cleaned %>%
+  group_by(Y, X, X_Y, Block, Rep, Plot, LIGNEE) %>%
+  summarise(Root_angle = mean(Root_angle), .groups = "drop")
+
+
+
+data_angle_c <- data_angle_wo_Out_means %>% 
   ggplot(aes(x = LIGNEE, y = Root_angle)) +
   geom_boxplot(aes(x = LIGNEE, y = Root_angle), outlier.shape = 8, outlier.color = "red", outlier.size = 3) +  
   geom_jitter(width = 0.2, alpha = 0.7, color = "blue") + 
@@ -91,29 +103,28 @@ data_angle_c <- data_angle_means %>%
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 data_angle_c
 
+########################################################
+############# Correction StatGen#######################
+################ On raw data###########################
+########################################################
 
-#==========================================================================================================================================================================
-#=============== Correction StatGen =======================================================================================================================================
-#================== On raw data ==============================================================================================================================================
-#===========================================================================================================================================================================
-setwd("C:/Users/2025an002/Desktop/Sordrought_2025/Aida_GWAS")
-data_root_Mean_angle <- read_excel("data/pheno/data_angle_sorDrought_2025.xlsx", sheet = 4)
+data_root_Mean_angle <- data_angle_wo_Out_means
 
 data_root_Mean_angle$rowId <- as.factor(data_root_Mean_angle$Y)
 data_root_Mean_angle$colId <- as.factor(data_root_Mean_angle$X)
 data_root_Mean_angle$LIGNEE <- as.character(data_root_Mean_angle$LIGNEE)
-data_root_Mean_angle$Mean_angle_geno <- as.numeric(data_root_Mean_angle$Mean_angle_geno)
+data_root_Mean_angle$Root_angle <- as.numeric(data_root_Mean_angle$Root_angle)
 
-
+data_root_Mean_angle <- data_root_Mean_angle %>%
+  filter(
+    is.finite(Root_angle),
+    !is.na(X),
+    !is.na(Y)
+  )
 
 data_root_Mean_angle_R <- data_root_Mean_angle %>%
-  select(LIGNEE, X, Y, rowId, colId, Block, Rep, Plot, Mean_angle_geno)
+  dplyr::select(LIGNEE, X, Y, rowId, colId, Block, Rep, Plot, Root_angle)
 
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="562")
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="412")
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="500")
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="597")
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="352")
 
 
 data_root_Mean_angle_R <- createTD(data = data_root_Mean_angle_R,
@@ -129,7 +140,7 @@ data_root_Mean_angle_R <- createTD(data = data_root_Mean_angle_R,
 ### Geno random
 spaMod_data_angle_R <- fitTD(TD = data_root_Mean_angle_R,
                              design = "res.ibd",
-                             traits = "Mean_angle_geno",
+                             traits = "Root_angle",
                              what = "random")
 
 summary(spaMod_data_angle_R)
@@ -138,22 +149,59 @@ summary(spaMod_data_angle_R)
 plot(spaMod_data_angle_R, plotType = "spatial", spaTrend = ("percentage"))
 
 ## Detect outliers in the standardized residuals of the fitted model.
-spats_outliers <- outlierSTA(STA = spaMod_data_angle_R, traits = "Mean_angle_geno", what = "random")
+spats_outliers <- outlierSTA(STA = spaMod_data_angle_R, traits = "Root_angle", what = "random")
+spats_outliers
 
 ## Extract all available statistics from the fitted model.
 spats_extr <- extractSTA(spaMod_data_angle_R, what = "heritability")
 spats_extr
 
-# BLUES <- extract()
+
+#SUPPRESSION DES OUTLIERS
+data_root_Mean_angle_R <- data_root_Mean_angle %>%
+  dplyr::select(LIGNEE, X, Y, rowId, colId, Block, Rep, Plot, Root_angle)
+
+
+
+data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="179")
+data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="562")
+data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="412")
+
+
+data_root_Mean_angle_R <- createTD(data = data_root_Mean_angle_R,
+                                   genotype = "LIGNEE",
+                                   rowCoord = "Y",
+                                   colCoord = "X",
+                                   rowId = "rowId",
+                                   colId = "colId",
+                                   subBlock = "Block",
+                                   repId = "Rep",
+                                   plotId = "Plot")
+
+### Geno random
+spaMod_data_angle_R <- fitTD(TD = data_root_Mean_angle_R,
+                             design = "res.ibd",
+                             traits = "Root_angle",
+                             what = "random")
+
+summary(spaMod_data_angle_R)
+
+## Create spatial plots of the results.
+plot(spaMod_data_angle_R, plotType = "spatial", spaTrend = ("percentage"))
+
+## Detect outliers in the standardized residuals of the fitted model.
+spats_outliers <- outlierSTA(STA = spaMod_data_angle_R, traits = "Root_angle", what = "random")
+spats_outliers
+
+## Extract all available statistics from the fitted model.
+spats_extr <- extractSTA(spaMod_data_angle_R, what = "heritability")
+spats_extr
+
 
 ### Geno fixed
 data_root_Mean_angle_F <- data_root_Mean_angle %>%
-  select(LIGNEE, X, Y, rowId, colId, Block, Rep, Plot, Mean_angle_geno)
+  select(LIGNEE, X, Y, rowId, colId, Block, Rep, Plot, Root_angle)
 
-data_root_Mean_angle_F <- data_root_Mean_angle_F %>% filter(Plot!="104")
-data_root_Mean_angle_F <- data_root_Mean_angle_F %>% filter(Plot!="690")
-data_root_Mean_angle_F <- data_root_Mean_angle_F %>% filter(Plot!="276")
-data_root_Mean_angle_F <- data_root_Mean_angle_F %>% filter(Plot!="412")
 
 data_root_Mean_angle_F <- createTD(data = data_root_Mean_angle_F,
                                    genotype = "LIGNEE",
@@ -167,7 +215,7 @@ data_root_Mean_angle_F <- createTD(data = data_root_Mean_angle_F,
 
 spaMod_Biom_F <- fitTD(TD = data_root_Mean_angle_F,
                        design = "res.ibd",
-                       traits = "Mean_angle_geno",
+                       traits = "Root_angle",
                        what = "fixed")
 
 summary(spaMod_Biom_F)
@@ -176,11 +224,58 @@ summary(spaMod_Biom_F)
 plot(spaMod_Biom_F, plotType = "spatial", spaTrend = ("percentage"))
 
 ## Detect outliers in the standardized residuals of the fitted model.
-spats_outliers <- outlierSTA(STA = spaMod_Biom_F, traits = "Mean_angle_geno", what = "fixed")
+spats_outliers <- outlierSTA(STA = spaMod_Biom_F, traits = "Root_angle", what = "fixed")
+spats_outliers
 
 #extr_lme4 <- extractSTA(spaMod, what=c("sMEANs"),  restoreColNames = TRUE, keep=c("repId","plotId","subBlock","rowCoord","colCoord"))
 spats_TDGxEf <- STAtoTD(STA = spaMod_Biom_F, what = c("BLUEs", "seBLUEs"))
 spats_TDGxEf
+
+
+
+
+#Suppression des outliers
+
+data_root_Mean_angle_F <- data_root_Mean_angle %>%
+  select(LIGNEE, X, Y, rowId, colId, Block, Rep, Plot, Root_angle)
+
+data_root_Mean_angle_F <- data_root_Mean_angle_F %>% filter(Plot!="276")
+data_root_Mean_angle_F <- data_root_Mean_angle_F %>% filter(Plot!="412")
+
+
+data_root_Mean_angle_F <- createTD(data = data_root_Mean_angle_F,
+                                   genotype = "LIGNEE",
+                                   rowCoord = "Y",
+                                   colCoord = "X",
+                                   rowId = "rowId",
+                                   colId = "colId",
+                                   subBlock = "Block",
+                                   repId = "Rep",
+                                   plotId = "Plot")
+
+spaMod_Biom_F <- fitTD(TD = data_root_Mean_angle_F,
+                       design = "res.ibd",
+                       traits = "Root_angle",
+                       what = "fixed")
+
+summary(spaMod_Biom_F)
+
+## Create spatial plots of the results.
+plot(spaMod_Biom_F, plotType = "spatial", spaTrend = ("percentage"))
+
+## Detect outliers in the standardized residuals of the fitted model.
+spats_outliers <- outlierSTA(STA = spaMod_Biom_F, traits = "Root_angle", what = "fixed")
+spats_outliers
+#extr_lme4 <- extractSTA(spaMod, what=c("sMEANs"),  restoreColNames = TRUE, keep=c("repId","plotId","subBlock","rowCoord","colCoord"))
+spats_TDGxEf <- STAtoTD(STA = spaMod_Biom_F, what = c("BLUEs", "seBLUEs"))
+spats_TDGxEf
+
+#Write blups 
+write.table(spats_TDGxEf, "BLUEs_Mean_angle_geno.txt", sep = ";", row.names = FALSE, col.names = TRUE)
+write.csv(spats_TDGxEf, "BLUEs_Mean_angle_geno.csv")
+
+write.csv(spats_TDGxEf, "data/pheno/BLUEs_Mean_angle_geno.csv")
+
 
 #Pour enrégistrer les BLUES
 str(spats_TDGxEf)
@@ -197,14 +292,14 @@ colnames(BLUEs_df) <- c("LIGNEE", "BLUEs_angle", "seBLUE")
 head(BLUEs_df)
 
 #Enrégistrer les BLUES dans output
-save(BLUEs_df, file = "output/BLUE_Angle_sordrought_2025.RData")
+save(BLUEs_df, file = "output/pheno/BLUE_Angle_sordrought_2025.RData")
 
 #Extraire la liste des génotypes
 genotypes_BLUE <- unique(BLUEs_df$LIGNEE)
 head(genotypes_BLUE)  # Vérifie les 6 premiers génotypes
 
 #Enrégistrer les BLUES dans output
-save(genotypes_BLUE, file = "output/liste_Angle_genotypes.RData")
+save(genotypes_BLUE, file = "output/geno/liste_Angle_genotypes.RData")
 
 
 
@@ -249,6 +344,8 @@ library(lme4)
 
 THALLES
 
+
+
 library(tidyr)
 library(dplyr)
 library(ggplot2)
@@ -259,107 +356,124 @@ library(dplyr)
 library(readxl)
 
 
-setwd("C:/Users/2025an002/Desktop/Sordrought_2025/CERAAS_sordrought/data")
+# setwd("C:/Users/2025an002/Desktop/Sordrought_2025/Aida_GWAS/Analyse_root_angle/data")
 # list.files() 
-data <- read_excel("pheno/data_angle_sordrought_2025.xlsx", sheet = 3)
+data <- read_excel("data/pheno/data_angle_sordrought_2025.xlsx", sheet = 2)
 
 geno_id <- unique(data$LIGNEE)
 cross_id <- substr(x = data$LIGNEE, 1, 4)
 table(cross_id)
 
-#ANALYSE SPATIALE AVEC STATGEN ET IQR
-colnames(data)
+# option add cross
+# data$cross <- cross_id
+
+str(data)
 
 data$Thalles <- as.numeric(data$Thalles) 
+#data <- na.omit(data)
 
 
-data1 <- data %>% 
+#L? on obtient pour chaque g?notype, les donn?es ab?rentes pour l'ensemble des r?p?titions
+data_Thalles <- data %>% 
   ggplot(aes(x = LIGNEE, y = Thalles)) +
   geom_boxplot(aes(x = LIGNEE, y = Thalles), outlier.shape = 8, outlier.color = "red", outlier.size = 3) +  
   geom_jitter(width = 0.2, alpha = 0.7, color = "blue") + 
   theme_bw() +
   theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
-data1
+data_Thalles
 
 
+####### Fonction remove outliers
+remove_outliers <- function(data, column) {
+  Q1 <- quantile(data[[column]], 0.25, na.rm = TRUE)
+  Q3 <- quantile(data[[column]], 0.75, na.rm = TRUE)
+  IQR <- Q3 - Q1
+  
+  lower_bound <- Q1 - 1.5 * IQR
+  upper_bound <- Q3 + 1.5 * IQR
+  
+  data_filtered <- data[data[[column]] >= lower_bound & data[[column]] <= upper_bound, ]
+  return(data_filtered)
+}
 
-data1 <- data %>% 
+# Loop through each Genotype and remove outliers
+Genotypes <- unique(data$LIGNEE)
+data_Thalles_cleaned <- data.frame()  # Empty dataframe to store results
+
+for (gen in Genotypes) {
+  subset_data <- data %>% filter(LIGNEE == gen)  # Subset for each Genotype
+  cleaned_data <- remove_outliers(subset_data, "Thalles")  # Apply outlier removal
+  data_Thalles_cleaned <- rbind(data_Thalles_cleaned, cleaned_data)  # Append cleaned data
+}
+
+print(data_Thalles_cleaned)
+
+#write.table(data_Root_angle_clean, "data_Root_angle_clean.txt", sep = ";", row.names = FALSE, col.names = TRUE)
+#Ici les outliers sont ?limin?s
+
+data_Thalles_wo_Out <- data_Thalles_cleaned %>% 
   ggplot(aes(x = LIGNEE, y = Thalles)) +
-  geom_boxplot(outlier.shape = NA) +  # ne montre pas les outliers
+  geom_boxplot(aes(x = LIGNEE, y = Thalles), outlier.shape = 8, outlier.color = "red", outlier.size = 3) +  
   geom_jitter(width = 0.2, alpha = 0.7, color = "blue") + 
   theme_bw() +
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+data_Thalles_wo_Out
 
-data1
 
-#data_angle_mean=data_angle_means
+cat("Avant :", nrow(data), "\n")
+cat("Après :", nrow(data_Thalles_cleaned), "\n")
+cat("Supprimées :", nrow(data) - nrow(data_Thalles_cleaned), "\n")
+
+
+#Avant : 2112 
+#Après : 1988 
+#Supprimées : 124 
+
 ##### Compute mean
 # on calcule la moyenne des trois plants pour chaque g?notype. Chaque point repr?sente une r?p?tition
-#J'ai mis na.rm=TRUE pour éviter qu'il supprime toutes les valeurs d'une parcelle s"il y'a une donnée manquante
-data_angle_means <- data %>%
-  group_by(LIGNEE, Plot) %>%
-  summarise(Thalles = mean(Thalles, na.rm = TRUE))
 
-data_angle_c <- data_angle_means %>% 
+data_Thalles_wo_Out_means <- data_Thalles_cleaned %>%
+  group_by(Y, X, X_Y, Block, Rep, Plot, LIGNEE) %>%
+  summarise(Thalles = mean(Thalles), .groups = "drop")
+
+
+
+data_Thalles_c <- data_Thalles_wo_Out_means %>% 
   ggplot(aes(x = LIGNEE, y = Thalles)) +
   geom_boxplot(aes(x = LIGNEE, y = Thalles), outlier.shape = 8, outlier.color = "red", outlier.size = 3) +  
   geom_jitter(width = 0.2, alpha = 0.7, color = "blue") + 
   theme_bw() +
   theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
-data_angle_c
+data_Thalles_c
 
-
-#=====================================================================================================================
+########################################################
 ############# Correction StatGen#######################
 ################ On raw data###########################
 ########################################################
-setwd("C:/Users/2025an002/Desktop/Sordrought_2025/CERAAS_sordrought")
-data_root_Mean_angle <- read_excel("data/pheno/data_angle_sordrought_2025.xlsx", sheet = 4)
 
-data_root_Mean_angle$rowId <- as.factor(data_root_Mean_angle$Y)
-data_root_Mean_angle$colId <- as.factor(data_root_Mean_angle$X)
-data_root_Mean_angle$LIGNEE <- as.character(data_root_Mean_angle$LIGNEE)
-data_root_Mean_angle$Mean_Thalles_geno <- as.numeric(data_root_Mean_angle$Mean_Thalles_geno)
+data_root_Mean_Thalles <- data_Thalles_wo_Out_means
+
+data_root_Mean_Thalles$rowId <- as.factor(data_root_Mean_Thalles$Y)
+data_root_Mean_Thalles$colId <- as.factor(data_root_Mean_Thalles$X)
+data_root_Mean_Thalles$LIGNEE <- as.character(data_root_Mean_Thalles$LIGNEE)
+data_root_Mean_Thalles$Thalles <- as.numeric(data_root_Mean_Thalles$Thalles)
+
+data_root_Mean_Thalles <- data_root_Mean_Thalles %>%
+  filter(
+    is.finite(Thalles),
+    !is.na(X),
+    !is.na(Y)
+  )
+
+data_root_Mean_Thalles_R <- data_root_Mean_Thalles %>%
+  dplyr::select(LIGNEE, X, Y, rowId, colId, Block, Rep, Plot, Thalles)
 
 
 
-data_root_Mean_angle_R <- data_root_Mean_angle %>%
-  select(LIGNEE, X, Y, rowId, colId, Block, Rep, Plot, Mean_Thalles_geno)
-
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="191")
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="371")
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="459")
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="639")
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="557")
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="484")
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="485")
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="318")
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="406")
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="63")
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="590")
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="593")
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="696")
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="521")
-
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="640")
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="25")
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="396")
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="492")
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="494")
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="57")
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="692")
-
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="573")
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="404")
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="322")
-
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="182")
-data_root_Mean_angle_R <- data_root_Mean_angle_R %>% filter(Plot!="145")
-
-data_root_Mean_angle_R <- createTD(data = data_root_Mean_angle_R,
+data_root_Mean_Thalles_R <- createTD(data = data_root_Mean_Thalles_R,
                                    genotype = "LIGNEE",
                                    rowCoord = "Y",
                                    colCoord = "X",
@@ -370,54 +484,58 @@ data_root_Mean_angle_R <- createTD(data = data_root_Mean_angle_R,
                                    plotId = "Plot")
 
 ### Geno random
-spaMod_data_angle_R <- fitTD(TD = data_root_Mean_angle_R,
+spaMod_data_Thalles_R <- fitTD(TD = data_root_Mean_Thalles_R,
                              design = "res.ibd",
-                             traits = "Mean_Thalles_geno",
+                             traits = "Thalles",
                              what = "random")
 
-summary(spaMod_data_angle_R)
+summary(spaMod_data_Thalles_R)
 
 ## Create spatial plots of the results.
-plot(spaMod_data_angle_R, plotType = "spatial", spaTrend = ("percentage"))
+plot(spaMod_data_Thalles_R, plotType = "spatial", spaTrend = ("percentage"))
 
 ## Detect outliers in the standardized residuals of the fitted model.
-spats_outliers <- outlierSTA(STA = spaMod_data_angle_R, traits = "Mean_Thalles_geno", what = "random")
+spats_outliers <- outlierSTA(STA = spaMod_data_Thalles_R, traits = "Thalles", what = "random")
+spats_outliers
 
 ## Extract all available statistics from the fitted model.
-spats_extr <- extractSTA(spaMod_data_angle_R, what = "heritability")
+spats_extr <- extractSTA(spaMod_data_Thalles_R, what = "heritability")
 spats_extr
 
-### Geno fixed
-data_root_Mean_angle_F <- data_root_Mean_angle %>%
-  select(LIGNEE, X, Y, rowId, colId, Block, Rep, Plot, Mean_Thalles_geno)
 
-data_root_Mean_angle_F <- data_root_Mean_angle_F %>% filter(Plot!="11")
-data_root_Mean_angle_F <- data_root_Mean_angle_F %>% filter(Plot!="484")
-data_root_Mean_angle_F <- data_root_Mean_angle_F %>% filter(Plot!="191")
-data_root_Mean_angle_F <- data_root_Mean_angle_F %>% filter(Plot!="507")
-data_root_Mean_angle_F <- data_root_Mean_angle_F %>% filter(Plot!="38")
-data_root_Mean_angle_F <- data_root_Mean_angle_F %>% filter(Plot!="459")
-data_root_Mean_angle_F <- data_root_Mean_angle_F %>% filter(Plot!="144")
-data_root_Mean_angle_F <- data_root_Mean_angle_F %>% filter(Plot!="557")
-data_root_Mean_angle_F <- data_root_Mean_angle_F %>% filter(Plot!="311")
-data_root_Mean_angle_F <- data_root_Mean_angle_F %>% filter(Plot!="406")
-data_root_Mean_angle_F <- data_root_Mean_angle_F %>% filter(Plot!="245")
-data_root_Mean_angle_F <- data_root_Mean_angle_F %>% filter(Plot!="485")
-data_root_Mean_angle_F <- data_root_Mean_angle_F %>% filter(Plot!="65")
-data_root_Mean_angle_F <- data_root_Mean_angle_F %>% filter(Plot!="494")
+#SUPPRESSION DES OUTLIERS
+data_root_Mean_Thalles_R <- data_root_Mean_Thalles %>%
+  dplyr::select(LIGNEE, X, Y, rowId, colId, Block, Rep, Plot, Thalles)
 
-data_root_Mean_angle_F <- data_root_Mean_angle_F %>% filter(Plot!="105")
-data_root_Mean_angle_F <- data_root_Mean_angle_F %>% filter(Plot!="639")
-data_root_Mean_angle_F <- data_root_Mean_angle_F %>% filter(Plot!="122")
-data_root_Mean_angle_F <- data_root_Mean_angle_F %>% filter(Plot!="696")
-data_root_Mean_angle_F <- data_root_Mean_angle_F %>% filter(Plot!="51")
-data_root_Mean_angle_F <- data_root_Mean_angle_F %>% filter(Plot!="521")
+data_root_Mean_Thalles_R <- data_root_Mean_Thalles_R %>% filter(Plot!="459")
+data_root_Mean_Thalles_R <- data_root_Mean_Thalles_R %>% filter(Plot!="640")
+data_root_Mean_Thalles_R <- data_root_Mean_Thalles_R %>% filter(Plot!="557")
+data_root_Mean_Thalles_R <- data_root_Mean_Thalles_R %>% filter(Plot!="484")
+data_root_Mean_Thalles_R <- data_root_Mean_Thalles_R %>% filter(Plot!="397")
+data_root_Mean_Thalles_R <- data_root_Mean_Thalles_R %>% filter(Plot!="485")
+data_root_Mean_Thalles_R <- data_root_Mean_Thalles_R %>% filter(Plot!="318")
+data_root_Mean_Thalles_R <- data_root_Mean_Thalles_R %>% filter(Plot!="57")
+data_root_Mean_Thalles_R <- data_root_Mean_Thalles_R %>% filter(Plot!="63")
+data_root_Mean_Thalles_R <- data_root_Mean_Thalles_R %>% filter(Plot!="593")
+data_root_Mean_Thalles_R <- data_root_Mean_Thalles_R %>% filter(Plot!="696")
+data_root_Mean_Thalles_R <- data_root_Mean_Thalles_R %>% filter(Plot!="521")
+data_root_Mean_Thalles_R <- data_root_Mean_Thalles_R %>% filter(Plot!="1")
+data_root_Mean_Thalles_R <- data_root_Mean_Thalles_R %>% filter(Plot!="284")
+data_root_Mean_Thalles_R <- data_root_Mean_Thalles_R %>% filter(Plot!="25")
+data_root_Mean_Thalles_R <- data_root_Mean_Thalles_R %>% filter(Plot!="492")
+data_root_Mean_Thalles_R <- data_root_Mean_Thalles_R %>% filter(Plot!="145")
+data_root_Mean_Thalles_R <- data_root_Mean_Thalles_R %>% filter(Plot!="221")
+data_root_Mean_Thalles_R <- data_root_Mean_Thalles_R %>% filter(Plot!="406")
+data_root_Mean_Thalles_R <- data_root_Mean_Thalles_R %>% filter(Plot!="121")
+data_root_Mean_Thalles_R <- data_root_Mean_Thalles_R %>% filter(Plot!="487")
+data_root_Mean_Thalles_R <- data_root_Mean_Thalles_R %>% filter(Plot!="486")
+data_root_Mean_Thalles_R <- data_root_Mean_Thalles_R %>% filter(Plot!="161")
+data_root_Mean_Thalles_R <- data_root_Mean_Thalles_R %>% filter(Plot!="191")
+data_root_Mean_Thalles_R <- data_root_Mean_Thalles_R %>% filter(Plot!="573")
+data_root_Mean_Thalles_R <- data_root_Mean_Thalles_R %>% filter(Plot!="348")
 
-data_root_Mean_angle_F <- data_root_Mean_angle_F %>% filter(Plot!="182")
-data_root_Mean_angle_F <- data_root_Mean_angle_F %>% filter(Plot!="641")
 
-
-data_root_Mean_angle_F <- createTD(data = data_root_Mean_angle_F,
+data_root_Mean_Thalles_R <- createTD(data = data_root_Mean_Thalles_R,
                                    genotype = "LIGNEE",
                                    rowCoord = "Y",
                                    colCoord = "X",
@@ -427,9 +545,44 @@ data_root_Mean_angle_F <- createTD(data = data_root_Mean_angle_F,
                                    repId = "Rep",
                                    plotId = "Plot")
 
-spaMod_Biom_F <- fitTD(TD = data_root_Mean_angle_F,
+### Geno random
+spaMod_data_Thalles_R <- fitTD(TD = data_root_Mean_Thalles_R,
+                             design = "res.ibd",
+                             traits = "Thalles",
+                             what = "random")
+
+summary(spaMod_data_Thalles_R)
+
+## Create spatial plots of the results.
+plot(spaMod_data_Thalles_R, plotType = "spatial", spaTrend = ("percentage"))
+
+## Detect outliers in the standardized residuals of the fitted model.
+spats_outliers <- outlierSTA(STA = spaMod_data_Thalles_R, traits = "Thalles", what = "random")
+spats_outliers
+
+## Extract all available statistics from the fitted model.
+spats_extr <- extractSTA(spaMod_data_Thalles_R, what = "heritability")
+spats_extr
+
+
+### Geno fixed
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles %>%
+  select(LIGNEE, X, Y, rowId, colId, Block, Rep, Plot, Thalles)
+
+
+data_root_Mean_Thalles_F <- createTD(data = data_root_Mean_Thalles_F,
+                                   genotype = "LIGNEE",
+                                   rowCoord = "Y",
+                                   colCoord = "X",
+                                   rowId = "rowId",
+                                   colId = "colId",
+                                   subBlock = "Block",
+                                   repId = "Rep",
+                                   plotId = "Plot")
+
+spaMod_Biom_F <- fitTD(TD = data_root_Mean_Thalles_F,
                        design = "res.ibd",
-                       traits = "Mean_Thalles_geno",
+                       traits = "Thalles",
                        what = "fixed")
 
 summary(spaMod_Biom_F)
@@ -438,18 +591,87 @@ summary(spaMod_Biom_F)
 plot(spaMod_Biom_F, plotType = "spatial", spaTrend = ("percentage"))
 
 ## Detect outliers in the standardized residuals of the fitted model.
-spats_outliers <- outlierSTA(STA = spaMod_Biom_F, traits = "Mean_Thalles_geno", what = "fixed")
+spats_outliers <- outlierSTA(STA = spaMod_Biom_F, traits = "Thalles", what = "fixed")
+spats_outliers
 
 #extr_lme4 <- extractSTA(spaMod, what=c("sMEANs"),  restoreColNames = TRUE, keep=c("repId","plotId","subBlock","rowCoord","colCoord"))
 spats_TDGxEf <- STAtoTD(STA = spaMod_Biom_F, what = c("BLUEs", "seBLUEs"))
 spats_TDGxEf
 
-#Write blues 
-#write.table(spats_TDGxEf, "BLUEs_Mean_Thalles_geno.txt", sep = ";", row.names = FALSE, col.names = TRUE)
-#write.csv(spats_TDGxEf, "BLUEs_Mean_Thalles_geno.csv")
 
-#write.csv(spats_TDGxEf, "pheno/BLUE/BLUEs_Mean_Thalles_geno.csv")
 
+
+#Suppression des outliers
+
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles %>%
+  select(LIGNEE, X, Y, rowId, colId, Block, Rep, Plot, Thalles)
+
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="11")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="459")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="38")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="484")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="397")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="485")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="160")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="245")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="557")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="51")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="144")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="318")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="521")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="522")
+
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="121")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="311")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="406")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="683")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="360")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="191")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="57")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="145")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="678")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="507")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="161")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="611")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="186")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="640")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="486")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="325")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="538")
+data_root_Mean_Thalles_F <- data_root_Mean_Thalles_F %>% filter(Plot!="284")
+
+data_root_Mean_Thalles_F <- createTD(data = data_root_Mean_Thalles_F,
+                                   genotype = "LIGNEE",
+                                   rowCoord = "Y",
+                                   colCoord = "X",
+                                   rowId = "rowId",
+                                   colId = "colId",
+                                   subBlock = "Block",
+                                   repId = "Rep",
+                                   plotId = "Plot")
+
+spaMod_Biom_F <- fitTD(TD = data_root_Mean_Thalles_F,
+                       design = "res.ibd",
+                       traits = "Thalles",
+                       what = "fixed")
+
+summary(spaMod_Biom_F)
+
+## Create spatial plots of the results.
+plot(spaMod_Biom_F, plotType = "spatial", spaTrend = ("percentage"))
+
+## Detect outliers in the standardized residuals of the fitted model.
+spats_outliers <- outlierSTA(STA = spaMod_Biom_F, traits = "Thalles", what = "fixed")
+spats_outliers
+#extr_lme4 <- extractSTA(spaMod, what=c("sMEANs"),  restoreColNames = TRUE, keep=c("repId","plotId","subBlock","rowCoord","colCoord"))
+spats_TDGxEf <- STAtoTD(STA = spaMod_Biom_F, what = c("BLUEs", "seBLUEs"))
+spats_TDGxEf
+
+#Write blups 
+write.table(spats_TDGxEf, "BLUEs_Mean_Thalles_geno.txt", sep = ";", row.names = FALSE, col.names = TRUE)
+write.csv(spats_TDGxEf, "BLUEs_Mean_Thalles_geno.csv")
+
+write.csv(spats_TDGxEf, "data/pheno/BLUEs_Mean_Thalles_geno.csv")
 
 #Pour enrégistrer les BLUES
 str(spats_TDGxEf)

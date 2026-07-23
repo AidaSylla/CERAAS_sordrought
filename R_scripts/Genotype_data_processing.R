@@ -9,6 +9,7 @@ load("data/par_per_cross/par_per_cross_GR.RData")
 ppc_GR <- par_per_cross
 # load("data/par_per_cross/par_per_cross_KK.RData")
 # ppc_KK <- par_per_cross
+#pour supprimer l'objet
 rm(par_per_cross)
 
 # les données de Aida provienne des croisements BC20, BC40, BC42
@@ -45,7 +46,7 @@ geno_012[1:10, 1:10]
 load(file = "data/map/Global_map.RData")
 
 # identifier les lignées de la sous population: croisements BC20, BC40, BC42
-data <- read_excel("data/pheno/data_angle_sordrought_2025.xlsx", sheet = 3)
+data <- read_excel("data/pheno/data_angle_sordrought_2025.xlsx", sheet = 2)
 X <- data$LIGNEE
 geno_id <- unique(X)
 
