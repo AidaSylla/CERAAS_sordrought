@@ -279,3 +279,68 @@ rm(pheno)
 
 save(mppData, file = file.path('data/mppData',
                                paste0('mppData_', pop_id,'.RData')))
+#Add pheno data to the mppData object----
+library(mppR)
+library(dplyr)
+# mdf mppData object BC12 BC31
+
+# load mppData object
+load(file = "data/mppData/mppData_BC12-31.RData")
+
+# Get the list of genotype data
+#list of genotpes
+load(file = "output/geno/liste_Slope_genotypes.RData")
+
+geno_id_Slope <- genotypes_BLUE
+
+load(file = "output/geno/liste_TR_RATE_24H_genotypes.RData")
+
+geno_id_TR_RATE_24H <- genotypes_BLUE
+
+load(file = "output/geno/liste_genotypes_en_pots_2026.RData")
+
+geno_id <- unique(union(union(as.character(geno_id_Slope),
+                              as.character(geno_id_TR_RATE_24H)), as.character(all_genotypes)))
+
+# subset mppData given list of genotype
+mppData <- subset(mppData, gen.list = geno_id)
+mppData$geno.off <- NULL
+
+# insert the phenotype data
+pheno_mpp <- mppData$pheno
+
+# load data
+load(file = "output/pheno/BLUEs_Pente.RData")
+BLUE_pente <- BLUEs_df
+rownames(BLUE_pente) <- BLUE_pente$LIGNEE
+
+load(file = "output/pheno/BLUEs_TR_RATE_24H.RData")
+BLUE_TR_RATE <- BLUEs_df
+rownames(BLUE_TR_RATE) <- BLUE_TR_RATE$LIGNEE
+
+pheno <- merge(BLUE_pente, BLUE_TR_RATE, by = "GENOTYPE")
+
+#Subset BLUE_TR_RATE and BLUE_pente in pheno.
+pheno <- pheno[, c("GENOTYPE", "BLUE_Slope", "BLUE_TR_RATE_24H")]
+
+# insert the phenotype data
+rownames(pheno) <- pheno$GENOTYPE
+pheno <- pheno |> select(-GENOTYPE)
+
+# test if the genotype identifier are the same between pheno data and mppData
+all(mppData$geno.id %in% rownames(pheno))
+
+#subset pheno data given the genotype identifier in mppData
+pheno <- pheno[mppData$geno.id, ]
+pheno <- as.matrix(pheno)
+
+mppData$pheno <- pheno
+
+# Save mppData object
+save(mppData,file = "data/mppData/mppData_BC12-31.RData")
+
+#Analysis of the mppData object----
+SIM <- mpp_SIM(mppData = mppData, trait = "BLUE_Slope", Q.eff = "par",
+               plot.gen.eff = TRUE)
+plot(SIM)
+
